@@ -16,6 +16,7 @@ interface GamePiece { id: string; type: PieceType; rotation: number; emoji: stri
 interface GridCellData { id: string; row: number; col: number; piece: GamePiece | null; }
 interface Coordinate { row: number; col: number; }
 type GameState = 'playing' | 'won' | 'victory';
+type AppState = 'booting' | 'active'; // NEW: App boot state
 
 // --- LEVEL DESIGN CONFIGURATION ---
 const LEVEL_CONFIGS = [
@@ -76,6 +77,7 @@ function InventoryPanel({ inventory }: { inventory: GamePiece[] }) {
 
 // --- MAIN APP ---
 export default function App() {
+  const [appState, setAppState] = useState<AppState>('booting');
   const [levelIndex, setLevelIndex] = useState(0);
   const [gameState, setGameState] = useState<GameState>('playing');
   const [grid, setGrid] = useState<GridCellData[]>([]);
@@ -86,6 +88,14 @@ export default function App() {
   const [attemptsLeft, setAttemptsLeft] = useState(3);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Loading Screen Timer
+  useEffect(() => {
+    if (appState === 'booting') {
+      const timer = setTimeout(() => setAppState('active'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [appState]);
 
   const generateLevelData = (index: number) => {
     const config = LEVEL_CONFIGS[index];
@@ -103,23 +113,24 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (appState !== 'active') return;
     const data = generateLevelData(levelIndex);
     setGrid(data.newGrid);
     setInventory(data.newInventory);
     setDropTimer(data.timer);
     setGameState('playing');
-  }, [levelIndex]);
+  }, [levelIndex, appState]);
 
   // Speedrun Timer
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || appState !== 'active') return;
     const interval = setInterval(() => setTotalTime(prev => prev + 1), 1000);
     return () => clearInterval(interval);
-  }, [gameState]);
+  }, [gameState, appState]);
 
-  // Gravity Engine with explicit GridCellData[] typing
+  // Gravity Engine
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || appState !== 'active') return;
     const configTimer = LEVEL_CONFIGS[levelIndex].timer;
 
     const interval = setInterval(() => {
@@ -185,11 +196,11 @@ export default function App() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [gameState, levelIndex]);
+  }, [gameState, levelIndex, appState]);
 
   // Laser Physics Engine
   useEffect(() => {
-    if (grid.length === 0) return;
+    if (grid.length === 0 || appState !== 'active') return;
     const sourceCell = grid.find(c => c.piece?.type === 'source');
     if (!sourceCell) return;
     let currentRow = sourceCell.row; let currentCol = sourceCell.col; let currentDir = 'RIGHT'; 
@@ -235,10 +246,10 @@ export default function App() {
       if (levelIndex + 1 >= LEVEL_CONFIGS.length) setGameState('victory');
       else setGameState('won');
     }
-  }, [grid, gameState, levelIndex]);
+  }, [grid, gameState, levelIndex, appState]);
 
   const handleDragEnd = (event: DragEndEvent) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || appState !== 'active') return;
     const { active, over } = event;
     if (!over) return;
     const draggedPiece = active.data.current as GamePiece;
@@ -260,7 +271,7 @@ export default function App() {
   };
 
   const handleRotate = (pieceId: string) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || appState !== 'active') return;
     setGrid(prev => prev.map(cell => {
       if (cell.piece?.id === pieceId && !cell.piece.isStatic) return { ...cell, piece: { ...cell.piece, rotation: (cell.piece.rotation + 90) % 360 } };
       return cell;
@@ -288,12 +299,29 @@ export default function App() {
     setAttemptsLeft(3); 
   };
 
+  // --- RENDER LOADING SCREEN ---
+  if (appState === 'booting') {
+    return (
+      <div className="loading-screen">
+        <div className="loading-content">
+          <h1>THE ELEVATOR SHAFT</h1>
+          <div className="loading-bar-container">
+            <div className="loading-bar"></div>
+          </div>
+          <p>INITIALIZING TERMINAL...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER MAIN GAME ---
   return (
     <div className="game-container">
       <div className="header">
         <h1>The Elevator Shaft</h1>
         
-        <div className="stats-bar">
+        {/* ADDED: Dynamic alert-mode class when timer is critically low */}
+        <div className={`stats-bar ${dropTimer <= 3 && gameState === 'playing' ? 'alert-mode' : ''}`}>
           <div>
             <p>Level: {LEVEL_CONFIGS[levelIndex]?.id}</p>
             <p style={{ fontSize: '14px', color: '#888' }}>Total Time: {totalTime}s</p>
@@ -319,12 +347,21 @@ export default function App() {
             <div className="shaft-grid">
               {grid.map(cell => <GridCell key={cell.id} cell={cell} onRotate={handleRotate} />)}
             </div>
-            <svg className="laser-overlay" style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
+            <svg style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
               {laserPath.map((point, index) => {
                 if (index === 0) return null;
                 const prev = getSvgCoordinates(laserPath[index - 1]);
                 const curr = getSvgCoordinates(point);
-                return <line key={index} x1={prev.x} y1={prev.y} x2={curr.x} y2={curr.y} stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" style={{ filter: 'drop-shadow(0px 0px 5px var(--accent))' }} />;
+                return (
+                  <line 
+                    key={index} 
+                    x1={prev.x} y1={prev.y} x2={curr.x} y2={curr.y} 
+                    stroke="var(--accent)" 
+                    strokeWidth="4" 
+                    strokeLinecap="square" 
+                    className="laser-beam" /* ADDED: Flowing laser animation class */
+                  />
+                );
               })}
             </svg>
 
@@ -336,9 +373,11 @@ export default function App() {
             )}
             {gameState === 'victory' && (
               <div className="overlay-screen" style={{ borderColor: '#4CAF50' }}>
-                <h2 style={{ color: '#4CAF50' }}>ELEVATOR SECURED!</h2>
-                <p style={{ color: 'white' }}>You survived in {totalTime} seconds.</p>
-                <button className="next-btn" style={{ backgroundColor: '#4CAF50' }} onClick={() => { setLevelIndex(0); setTotalTime(0); setAttemptsLeft(3); }}>Play Again</button>
+                <h2 style={{ color: '#4CAF50', textShadow: '0 0 18px rgba(76, 175, 80, 0.6)' }}>ELEVATOR SECURED!</h2>
+                <p style={{ color: 'white', fontFamily: "'JetBrains Mono', monospace", marginTop: '10px' }}>
+                  You survived in {totalTime} seconds.
+                </p>
+                <button className="next-btn" style={{ backgroundColor: '#4CAF50', color: '#000', boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)' }} onClick={() => { setLevelIndex(0); setTotalTime(0); setAttemptsLeft(3); setGameState('playing'); }}>Play Again</button>
               </div>
             )}
           </div>
