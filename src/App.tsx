@@ -13,7 +13,7 @@ import './App.css';
 
 // --- GAME TYPES ---
 type PieceType = 'mirror-angled' | 'splitter' | 'prism' | 'source' | 'target' | 'obstacle';
-interface GamePiece { id: string; type: PieceType; rotation: number; emoji: string; isStatic?: boolean; isFalling?: boolean; }
+interface GamePiece { id: string; type: PieceType; rotation: number; emoji: string; isStatic?: boolean; }
 interface GridCellData { id: string; row: number; col: number; piece: GamePiece | null; }
 interface Coordinate { row: number; col: number; }
 type GameState = 'playing' | 'won' | 'victory';
@@ -21,21 +21,21 @@ type AppState = 'booting' | 'active';
 
 // --- LEVEL DESIGN CONFIGURATION ---
 const LEVEL_CONFIGS = [
-  // THE BLITZ (5 Seconds)
-  { id: 1, timer: 5, source: { r: 0, c: 0 }, target: { r: 5, c: 5 }, obstacles: [], inventory: [90, 0] },
-  { id: 2, timer: 5, source: { r: 0, c: 1 }, target: { r: 5, c: 4 }, obstacles: [{ r: 2, c: 1 }, { r: 2, c: 2 }, { r: 2, c: 3 }, { r: 2, c: 4 }], inventory: [90, 0, 90] },
-  { id: 3, timer: 5, source: { r: 1, c: 0 }, target: { r: 4, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 4 }, { r: 4, c: 4 }], inventory: [90, 0, 270] },
-  { id: 4, timer: 5, source: { r: 1, c: 0 }, target: { r: 1, c: 4 }, obstacles: [{ r: 1, c: 2 }, { r: 1, c: 3 }], inventory: [90, 90, 0, 0] },
-  { id: 5, timer: 5, source: { r: 2, c: 0 }, target: { r: 4, c: 2 }, obstacles: [{ r: 2, c: 2 }, { r: 4, c: 1 }, { r: 4, c: 3 }], inventory: [90, 90, 0, 0] },
-  { id: 6, timer: 5, source: { r: 0, c: 0 }, target: { r: 5, c: 0 }, obstacles: [{ r: 1, c: 0 }, { r: 2, c: 0 }, { r: 3, c: 0 }, { r: 4, c: 0 }], inventory: [90, 0] },
-  { id: 7, timer: 5, source: { r: 1, c: 0 }, target: { r: 1, c: 5 }, obstacles: [{ r: 0, c: 3 }, { r: 1, c: 3 }, { r: 2, c: 3 }, { r: 3, c: 3 }], inventory: [90, 0, 90, 0] },
+  // WARM UPS
+  { id: 1, source: { r: 0, c: 0 }, target: { r: 5, c: 5 }, obstacles: [], inventory: [90, 0] },
+  { id: 2, source: { r: 0, c: 1 }, target: { r: 5, c: 4 }, obstacles: [{ r: 2, c: 1 }, { r: 2, c: 2 }, { r: 2, c: 3 }, { r: 2, c: 4 }], inventory: [90, 0, 90] },
+  { id: 3, source: { r: 1, c: 0 }, target: { r: 4, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 4 }, { r: 4, c: 4 }], inventory: [90, 0, 270] },
+  { id: 4, source: { r: 1, c: 0 }, target: { r: 1, c: 4 }, obstacles: [{ r: 1, c: 2 }, { r: 1, c: 3 }], inventory: [90, 90, 0, 0] },
+  { id: 5, source: { r: 2, c: 0 }, target: { r: 4, c: 2 }, obstacles: [{ r: 2, c: 2 }, { r: 4, c: 1 }, { r: 4, c: 3 }], inventory: [90, 90, 0, 0] },
+  { id: 6, source: { r: 0, c: 0 }, target: { r: 5, c: 0 }, obstacles: [{ r: 1, c: 0 }, { r: 2, c: 0 }, { r: 3, c: 0 }, { r: 4, c: 0 }], inventory: [90, 0] },
+  { id: 7, source: { r: 1, c: 0 }, target: { r: 1, c: 5 }, obstacles: [{ r: 0, c: 3 }, { r: 1, c: 3 }, { r: 2, c: 3 }, { r: 3, c: 3 }], inventory: [90, 0, 90, 0] },
   
-  // THE MEAT GRINDER (6 Seconds)
-  { id: 8, timer: 6, source: { r: 1, c: 0 }, target: { r: 4, c: 0 }, obstacles: [{ r: 2, c: 0 }, { r: 2, c: 1 }, { r: 2, c: 2 }, { r: 4, c: 3 }, { r: 4, c: 4 }, { r: 4, c: 5 }], inventory: [90, 0, 90, 0, 90, 0] },
-  { id: 9, timer: 6, source: { r: 2, c: 0 }, target: { r: 2, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 2 }, { r: 1, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 4 }], inventory: [90, 0, 90, 0, 90, 0] },
+  // MAZES
+  { id: 8, source: { r: 1, c: 0 }, target: { r: 4, c: 0 }, obstacles: [{ r: 2, c: 0 }, { r: 2, c: 1 }, { r: 2, c: 2 }, { r: 4, c: 3 }, { r: 4, c: 4 }, { r: 4, c: 5 }], inventory: [90, 0, 90, 0, 90, 0] },
+  { id: 9, source: { r: 2, c: 0 }, target: { r: 2, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 2 }, { r: 1, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 4 }], inventory: [90, 0, 90, 0, 90, 0] },
   
-  // ABSOLUTE NIGHTMARE (8 Seconds)
-  { id: 10, timer: 8, source: { r: 1, c: 0 }, target: { r: 1, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 2 }, { r: 4, c: 2 }, { r: 4, c: 3 }, { r: 1, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 4 }], inventory: [90, 0, 90, 0] }
+  // THE FORTRESS
+  { id: 10, source: { r: 1, c: 0 }, target: { r: 1, c: 5 }, obstacles: [{ r: 1, c: 2 }, { r: 2, c: 2 }, { r: 3, c: 2 }, { r: 4, c: 2 }, { r: 4, c: 3 }, { r: 1, c: 4 }, { r: 2, c: 4 }, { r: 3, c: 4 }], inventory: [90, 0, 90, 0] }
 ];
 
 // --- COMPONENTS ---
@@ -83,10 +83,8 @@ export default function App() {
   const [gameState, setGameState] = useState<GameState>('playing');
   const [grid, setGrid] = useState<GridCellData[]>([]);
   const [inventory, setInventory] = useState<GamePiece[]>([]);
-  const [dropTimer, setDropTimer] = useState(10);
   const [laserPath, setLaserPath] = useState<Coordinate[]>([]);
   const [totalTime, setTotalTime] = useState(0);
-  const [attemptsLeft, setAttemptsLeft] = useState(3);
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 5 },
@@ -112,13 +110,13 @@ export default function App() {
       const row = Math.floor(i / 6);
       const col = i % 6;
       let piece: GamePiece | null = null;
-      if (row === config.source.r && col === config.source.c) piece = { id: `source-${index}`, type: 'source', rotation: 90, emoji: '⚡', isStatic: true, isFalling: false };
-      else if (row === config.target.r && col === config.target.c) piece = { id: `target-${index}`, type: 'target', rotation: 0, emoji: '🤖', isStatic: true, isFalling: false };
-      else if (config.obstacles.some(obs => obs.r === row && obs.c === col)) piece = { id: `obs-${row}-${col}`, type: 'obstacle', rotation: 0, emoji: '🪨', isStatic: true, isFalling: false };
+      if (row === config.source.r && col === config.source.c) piece = { id: `source-${index}`, type: 'source', rotation: 90, emoji: '⚡', isStatic: true };
+      else if (row === config.target.r && col === config.target.c) piece = { id: `target-${index}`, type: 'target', rotation: 0, emoji: '🤖', isStatic: true };
+      else if (config.obstacles.some(obs => obs.r === row && obs.c === col)) piece = { id: `obs-${row}-${col}`, type: 'obstacle', rotation: 0, emoji: '🪨', isStatic: true };
       return { id: `cell-${row}-${col}`, row, col, piece };
     });
     const newInventory: GamePiece[] = config.inventory.map((rot, i) => ({ id: `inv-${index}-${i}`, type: 'mirror-angled' as PieceType, rotation: rot, emoji: '╱' }));
-    return { newGrid, newInventory, timer: config.timer };
+    return { newGrid, newInventory };
   };
 
   useEffect(() => {
@@ -126,86 +124,15 @@ export default function App() {
     const data = generateLevelData(levelIndex);
     setGrid(data.newGrid);
     setInventory(data.newInventory);
-    setDropTimer(data.timer);
     setGameState('playing');
   }, [levelIndex, appState]);
 
-  // Speedrun Timer
+  // Speedrun Timer (Still tracking how long they take to beat all levels!)
   useEffect(() => {
     if (gameState !== 'playing' || appState !== 'active') return;
     const interval = setInterval(() => setTotalTime(prev => prev + 1), 1000);
     return () => clearInterval(interval);
   }, [gameState, appState]);
-
-  // Gravity Engine
-  useEffect(() => {
-    if (gameState !== 'playing' || appState !== 'active') return;
-    const configTimer = LEVEL_CONFIGS[levelIndex].timer;
-
-    const interval = setInterval(() => {
-      setDropTimer((prevTime) => {
-        if (prevTime <= 1) {
-          setGrid((currentGrid: GridCellData[]): GridCellData[] => {
-            const recoveredMirrors: GamePiece[] = [];
-
-            const nextGrid: GridCellData[] = currentGrid.map((cell: GridCellData): GridCellData => {
-              if (cell.piece?.isStatic && !cell.piece.isFalling) {
-                if (cell.row > 0) {
-                  const cellAbove = currentGrid.find(c => c.row === cell.row - 1 && c.col === cell.col);
-                  if (cellAbove?.piece && !cellAbove.piece.isStatic) recoveredMirrors.push(cellAbove.piece);
-                }
-                return cell;
-              }
-
-              if (cell.row === 0) {
-                const spawnChance = Math.min(0.05 + ((levelIndex + 1) * 0.02), 0.25); 
-                const sourcePiece = currentGrid.find(c => c.piece?.type === 'source');
-                let isSafeZone = false;
-                if (sourcePiece && sourcePiece.row === 0) {
-                  if (cell.col === sourcePiece.col || cell.col === sourcePiece.col + 1) isSafeZone = true;
-                }
-                if (Math.random() < spawnChance && !isSafeZone) {
-                  return { 
-                    ...cell, 
-                    piece: { 
-                      id: `rnd-obs-${Date.now()}-${cell.col}`, 
-                      type: 'obstacle' as PieceType, 
-                      rotation: 0, 
-                      emoji: '🪨', 
-                      isStatic: true, 
-                      isFalling: true 
-                    } 
-                  };
-                }
-                return { ...cell, piece: null };
-              }
-              
-              const cellAbove = currentGrid.find(c => c.row === cell.row - 1 && c.col === cell.col);
-              
-              if (cellAbove?.piece?.isStatic && !cellAbove.piece.isFalling) {
-                return { ...cell, piece: null };
-              }
-
-              return { ...cell, piece: cellAbove?.piece || null };
-            });
-
-            currentGrid.filter(c => c.row === 5 && c.piece && !c.piece.isStatic).forEach(c => {
-              if (c.piece) recoveredMirrors.push(c.piece);
-            });
-
-            if (recoveredMirrors.length > 0) {
-              setTimeout(() => setInventory(prev => [...prev, ...recoveredMirrors]), 0);
-            }
-
-            return nextGrid;
-          });
-          return configTimer; 
-        }
-        return prevTime - 1; 
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [gameState, levelIndex, appState]);
 
   // Laser Physics Engine
   useEffect(() => {
@@ -290,22 +217,13 @@ export default function App() {
   const getSvgCoordinates = (coord: Coordinate) => ({ x: coord.col * 62 + 30, y: coord.row * 62 + 30 });
 
   const handleRestart = () => {
-    if (attemptsLeft > 1) {
-      setAttemptsLeft(prev => prev - 1);
-      const data = generateLevelData(levelIndex);
-      setGrid(data.newGrid);
-      setInventory(data.newInventory);
-      setDropTimer(data.timer);
-    } else {
-      const nextLevel = Math.max(0, levelIndex - 1);
-      setLevelIndex(nextLevel);
-      setAttemptsLeft(3); 
-    }
+    const data = generateLevelData(levelIndex);
+    setGrid(data.newGrid);
+    setInventory(data.newInventory);
   };
 
   const startNextLevel = () => {
     setLevelIndex(prev => prev + 1);
-    setAttemptsLeft(3); 
   };
 
   if (appState === 'booting') {
@@ -327,24 +245,16 @@ export default function App() {
       <div className="header">
         <h1>The Elevator Shaft</h1>
         
-        <div className={`stats-bar ${dropTimer <= 3 && gameState === 'playing' ? 'alert-mode' : ''}`}>
+        <div className="stats-bar">
           <div>
             <p>Level: {LEVEL_CONFIGS[levelIndex]?.id}</p>
             <p style={{ fontSize: '14px', color: '#888' }}>Total Time: {totalTime}s</p>
           </div>
-          
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ color: dropTimer <= 3 && gameState === 'playing' ? 'var(--accent)' : 'white' }}>
-              Shift In: {gameState === 'playing' ? dropTimer : '--'}s
-            </h2>
-          </div>
 
           <div style={{ textAlign: 'right' }}>
-            <p style={{ color: attemptsLeft === 1 ? 'var(--accent)' : 'white' }}>Attempts: {attemptsLeft}/3</p>
-            <button className="restart-btn" onClick={handleRestart}>Restart</button>
+            <button className="restart-btn" onClick={handleRestart}>Reset Board</button>
           </div>
         </div>
-
       </div>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -383,7 +293,7 @@ export default function App() {
                 <p style={{ color: 'white', fontFamily: "'JetBrains Mono', monospace", marginTop: '10px' }}>
                   You survived in {totalTime} seconds.
                 </p>
-                <button className="next-btn" style={{ backgroundColor: '#4CAF50', color: '#000', boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)' }} onClick={() => { setLevelIndex(0); setTotalTime(0); setAttemptsLeft(3); setGameState('playing'); }}>Play Again</button>
+                <button className="next-btn" style={{ backgroundColor: '#4CAF50', color: '#000', boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)' }} onClick={() => { setLevelIndex(0); setTotalTime(0); setGameState('playing'); }}>Play Again</button>
               </div>
             )}
           </div>
