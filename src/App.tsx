@@ -4,7 +4,8 @@ import {
   useDraggable, 
   useDroppable, 
   type DragEndEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core';
@@ -16,7 +17,7 @@ interface GamePiece { id: string; type: PieceType; rotation: number; emoji: stri
 interface GridCellData { id: string; row: number; col: number; piece: GamePiece | null; }
 interface Coordinate { row: number; col: number; }
 type GameState = 'playing' | 'won' | 'victory';
-type AppState = 'booting' | 'active'; // NEW: App boot state
+type AppState = 'booting' | 'active';
 
 // --- LEVEL DESIGN CONFIGURATION ---
 const LEVEL_CONFIGS = [
@@ -87,7 +88,15 @@ export default function App() {
   const [totalTime, setTotalTime] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(3);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 5 },
+  });
+  
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 150, tolerance: 5 },
+  });
+
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   // Loading Screen Timer
   useEffect(() => {
@@ -299,7 +308,6 @@ export default function App() {
     setAttemptsLeft(3); 
   };
 
-  // --- RENDER LOADING SCREEN ---
   if (appState === 'booting') {
     return (
       <div className="loading-screen">
@@ -314,13 +322,11 @@ export default function App() {
     );
   }
 
-  // --- RENDER MAIN GAME ---
   return (
     <div className="game-container">
       <div className="header">
         <h1>The Elevator Shaft</h1>
         
-        {/* ADDED: Dynamic alert-mode class when timer is critically low */}
         <div className={`stats-bar ${dropTimer <= 3 && gameState === 'playing' ? 'alert-mode' : ''}`}>
           <div>
             <p>Level: {LEVEL_CONFIGS[levelIndex]?.id}</p>
@@ -359,7 +365,7 @@ export default function App() {
                     stroke="var(--accent)" 
                     strokeWidth="4" 
                     strokeLinecap="square" 
-                    className="laser-beam" /* ADDED: Flowing laser animation class */
+                    className="laser-beam" 
                   />
                 );
               })}
