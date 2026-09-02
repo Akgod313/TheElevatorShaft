@@ -17,7 +17,7 @@ interface GamePiece { id: string; type: PieceType; rotation: number; emoji: stri
 interface GridCellData { id: string; row: number; col: number; piece: GamePiece | null; }
 interface Coordinate { row: number; col: number; }
 type GameState = 'playing' | 'won' | 'victory';
-type AppState = 'booting' | 'active';
+type AppState = 'booting' | 'instructions' | 'active';
 
 // --- LEVEL DESIGN CONFIGURATION ---
 const LEVEL_CONFIGS = [
@@ -40,16 +40,36 @@ const LEVEL_CONFIGS = [
 
 // --- COMPONENTS ---
 function InventoryPiece({ piece }: { piece: GamePiece }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: piece.id, data: piece });
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
-  return <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="inventory-piece">{piece.emoji}</div>;
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: piece.id, data: piece });
+  const style = transform ? { 
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transition: isDragging ? 'none' : undefined,
+    zIndex: isDragging ? 999 : 1, 
+  } : undefined;
+  
+  return (
+    <div 
+      ref={setNodeRef} 
+      {...listeners} 
+      {...attributes} 
+      className="inventory-piece"
+      style={{ ...style, touchAction: 'none' }} 
+    >
+      {piece.emoji}
+    </div>
+  );
 }
 
 function GridPiece({ piece, onRotate }: { piece: GamePiece; onRotate: (id: string) => void }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: piece.id, data: piece, disabled: piece.isStatic });
-  const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: piece.id, data: piece, disabled: piece.isStatic });
+  const style = transform ? { 
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transition: isDragging ? 'none' : undefined,
+    zIndex: isDragging ? 999 : 20,
+  } : undefined;
+  
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="draggable-wrapper">
+    <div ref={setNodeRef} style={{...style, touchAction: 'none'}} {...listeners} {...attributes} className="draggable-wrapper">
       <div 
         className={`placed-piece ${piece.type === 'source' ? 'piece-source' : ''} ${piece.type === 'target' ? 'piece-target' : ''} ${piece.type === 'obstacle' ? 'piece-obstacle' : ''}`} 
         onClick={() => onRotate(piece.id)}
@@ -79,6 +99,7 @@ function InventoryPanel({ inventory }: { inventory: GamePiece[] }) {
 // --- MAIN APP ---
 export default function App() {
   const [appState, setAppState] = useState<AppState>('booting');
+  const [isExiting, setIsExiting] = useState(false);
   const [levelIndex, setLevelIndex] = useState(0);
   const [gameState, setGameState] = useState<GameState>('playing');
   const [grid, setGrid] = useState<GridCellData[]>([]);
@@ -99,7 +120,7 @@ export default function App() {
   // Loading Screen Timer
   useEffect(() => {
     if (appState === 'booting') {
-      const timer = setTimeout(() => setAppState('active'), 3000);
+      const timer = setTimeout(() => setAppState('instructions'), 3000);
       return () => clearTimeout(timer);
     }
   }, [appState]);
@@ -127,7 +148,7 @@ export default function App() {
     setGameState('playing');
   }, [levelIndex, appState]);
 
-  // Speedrun Timer (Still tracking how long they take to beat all levels!)
+  // Speedrun Timer
   useEffect(() => {
     if (gameState !== 'playing' || appState !== 'active') return;
     const interval = setInterval(() => setTotalTime(prev => prev + 1), 1000);
@@ -235,6 +256,32 @@ export default function App() {
             <div className="loading-bar"></div>
           </div>
           <p>INITIALIZING TERMINAL...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (appState === 'instructions') {
+    const handleStart = () => {
+      setIsExiting(true);
+      setTimeout(() => {
+        setAppState('active');
+        setIsExiting(false);
+      }, 600); 
+    };
+
+    return (
+      <div className={`instructions-screen ${isExiting ? 'fade-out' : ''}`}>
+        <div className="instructions-content">
+          <h2>TERMINAL ACCESS GRANTED</h2>
+          <div className="instructions-text">
+            <p><strong>MISSION:</strong> Route the power beam (⚡) to the drone receiver (🤖).</p>
+            <p><strong>DEPLOYMENT:</strong> Click and hold (or touch and drag on mobile) a mirror (╱) from the Inventory. Drag it over the board and release it onto an empty grid square.</p>
+            <p><strong>ADJUSTMENT:</strong> Click or tap on a placed mirror to rotate it 90 degrees.</p>
+            <p><strong>OBSTACLES:</strong> Route around the structural debris (🪨) blocking the shaft.</p>
+            <p><strong>OBJECTIVE:</strong> Complete all 10 maintenance sectors as fast as possible.</p>
+          </div>
+          <button className="next-btn" onClick={handleStart}>INITIATE PROTOCOL</button>
         </div>
       </div>
     );
